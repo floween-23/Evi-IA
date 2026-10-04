@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EVI</title>
+<link rel="preconnect" href="https://generativelanguage.googleapis.com">
+<style>
+:root{--bg:#000;--cel:#4fd1ff;--cel2:#0a6f94;--w:#fff;--dim:#8fb4c4;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:radial-gradient(ellipse at 50% 35%,#04202b 0,#000 65%);color:var(--w);font-family:"Rajdhani","Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:18px 16px;overflow:hidden}
+h1{font-size:15px;letter-spacing:.5em;font-weight:600;color:var(--cel);text-indent:.5em}
+#status{font-size:18px;color:var(--dim);min-height:26px;text-align:center}
+.stage{position:relative;width:min(72vw,300px);aspect-ratio:1;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:50%}
+.stage:focus-visible{outline:2px solid var(--w);outline-offset:8px}
+svg{position:absolute;inset:0;width:100%;height:100%}
+.r1{transform-origin:50% 50%;animation:spin 18s linear infinite}
+.r2{transform-origin:50% 50%;animation:spin 11s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.core{position:absolute;inset:27%;border-radius:50%;background:radial-gradient(circle at 40% 35%,#fff 0,var(--cel) 35%,var(--cel2) 80%);box-shadow:0 0 40px var(--cel2),0 0 90px rgba(79,209,255,.35);transition:transform .15s,box-shadow .3s}
+.stage.listen .core{animation:pulse 1s ease-in-out infinite;box-shadow:0 0 60px var(--cel),0 0 140px rgba(79,209,255,.6)}
+.stage.speak .core{animation:talk .32s ease-in-out infinite alternate;background:radial-gradient(circle at 40% 35%,#fff 0,#fff 20%,var(--cel) 60%,var(--cel2) 100%)}
+@keyframes pulse{50%{transform:scale(1.12)}}
+@keyframes talk{from{transform:scale(.95)}to{transform:scale(1.2)}}
+#log{width:100%;max-width:440px;display:flex;flex-direction:column;gap:6px;font-size:17px;max-height:20vh;overflow-y:auto}
+#log p{padding:6px 12px;border-left:2px solid var(--cel2);color:var(--dim);line-height:1.25}
+#log p.evi{border-color:var(--cel);color:var(--w)}
+form{display:flex;gap:8px;width:100%;max-width:440px}
+input{flex:1;background:#06141b;border:1px solid var(--cel2);color:var(--w);padding:12px 14px;border-radius:10px;font:inherit;font-size:17px;min-width:0}
+input:focus{outline:2px solid var(--cel);border-color:var(--cel)}
+button{background:var(--cel);color:#000;border:0;border-radius:10px;padding:0 18px;font:inherit;font-weight:700;font-size:17px;cursor:pointer}
+button.alt{background:transparent;color:var(--cel);border:1px solid var(--cel2)}
+button.alt[aria-pressed=true]{background:var(--cel2);color:var(--w)}
+.bot{display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+#kb{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+#kb[hidden]{display:none}
+.kc{background:#06141b;border:1px solid var(--cel);border-radius:14px;padding:20px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px}
+.kc h2{color:var(--cel);font-size:20px}
+.kc p{color:var(--dim);font-size:16px;line-height:1.3}
+.kr{display:flex;gap:8px}
+.kr button{flex:1;padding:12px}
+</style>
+</head>
+<body>
+<h1>E V I</h1>
+<div id="status">Tocá el orbe y hablá</div>
+<div class="stage" id="orb" role="button" tabindex="0" aria-label="Hablar con EVI">
+<svg viewBox="0 0 300 300" fill="none" stroke="#4fd1ff">
+<circle cx="150" cy="150" r="146" stroke-width="1" opacity=".35"/>
+<g class="r1"><circle cx="150" cy="150" r="134" stroke-width="3" stroke-dasharray="60 24 8 24"/></g>
+<g class="r2"><circle cx="150" cy="150" r="116" stroke-width="1.5" stroke="#fff" stroke-dasharray="3 9" opacity=".8"/></g>
+<g class="r1"><path d="M150 18v22M150 260v22M18 150h22M260 150h22" stroke-width="3"/></g>
+<circle cx="150" cy="150" r="92" stroke-width="1" opacity=".5"/>
+</svg>
+<div class="core"></div>
+</div>
+<div class="bot">
+<div id="log" aria-live="polite"></div>
+<form id="f"><input id="t" placeholder="O escribí acá…" autocomplete="off"><button>Enviar</button></form>
+<button class="alt" id="auto" aria-pressed="false" type="button">Escucha continua: decí “Evi…”</button>
+<button class="alt" id="key" type="button">Configurar clave de Gemini</button>
+</div>
+<div id="kb" hidden role="dialog" aria-modal="true" aria-labelledby="kt"><div class="kc">
+<h2 id="kt">Poné tu clave de Gemini</h2>
+<p>EVI necesita tu propia clave gratis de Google. Conseguila en aistudio.google.com/apikey y pegala acá. Queda guardada solo en este dispositivo.</p>
+<input id="ki" type="password" placeholder="Pegá tu clave acá" autocomplete="off">
+<div class="kr"><button id="ks" type="button">Guardar</button><button class="alt" id="kx" type="button">Después</button></div>
+</div></div>
+<script>
+(function(){
+var orb=document.getElementById('orb'),st=document.getElementById('status'),log=document.getElementById('log'),
+f=document.getElementById('f'),t=document.getElementById('t'),autoBtn=document.getElementById('auto');
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition,rec=null,auto=false,busy=false,voice=null;
+var CP=(window.Capacitor&&window.Capacitor.Plugins)||{},NSR=CP.SpeechRecognition,NTTS=CP.TextToSpeech,listening=false,errs=0;
+function stopSpeak(){gen++;pending=0;try{if(NTTS)NTTS.stop();else if('speechSynthesis' in window)speechSynthesis.cancel()}catch(e){}}
+function pickVoice(){var v=speechSynthesis.getVoices().filter(function(x){return /^es/i.test(x.lang)});
+voice=v.find(function(x){return /AR|419|MX|US/i.test(x.lang)})||v[0]||null}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function add(c,m){var p=document.createElement('p');p.className=c;p.textContent=m;log.appendChild(p);
+while(log.children.length>6)log.removeChild(log.firstChild);log.scrollTop=log.scrollHeight}
+function state(s){orb.className='stage '+s}
+function say(m){add('evi',m);st.textContent=m;stopSpeak();busy=true;done=true;pending=0;chunk(m)}
+var chistes=['¿Por qué Spider-Man es tan buen programador? Porque siempre atrapa los bugs.','Mi cable de datos y la telaraña tienen algo en común: se enredan siempre.','¿Qué le dijo un byte a otro? Te quiero un bit.'];
+var datos=['Tu vecino y amigable Hombre Araña siempre llega justo a tiempo. Yo también.','Un gran poder conlleva una gran responsabilidad. Y una gran batería.'];
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function calc(q){var s=q.replace(/dividido (por|entre)|dividido/g,'/').replace(/más|mas/g,'+').replace(/menos/g,'-').replace(/multiplicado por|por|x/g,'*').replace(/,/g,'.');
+s=s.replace(/[^0-9+\-*/.() ]/g,'').trim();
+if(/\d\s*[+\-*/]\s*\d/.test(s)&&/^[0-9+\-*/.() ]+$/.test(s)){try{var r=Function('"use strict";return ('+s+')')();if(isFinite(r))return 'El resultado es '+(Math.round(r*1e6)/1e6).toString().replace('.',' coma ')}catch(e){}}return null}
+function think(raw){
+var q=raw.toLowerCase().replace(/[¿?¡!.]/g,'').replace(/\bevi\b/g,'').replace(/\s+/g,' ').trim();
+if(!q)return 'Acá estoy. ¿Qué necesitás?';
+var c=calc(q);if(c)return c;
+if(/\bhora\b/.test(q))return 'Son las '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+if(/(fecha|qué día|que dia|día es hoy|dia es hoy)/.test(q))return 'Hoy es '+new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+if(/(cómo te llam|como te llam|quién sos|quien sos|quién eres|quien eres|tu nombre)/.test(q))return 'Soy Evi, tu asistente de voz. Estoy lista para ayudarte.';
+if(/(cómo estás|como estas|cómo andás|como andas)/.test(q))return 'Sistemas al cien por ciento. ¿Y vos?';
+if(q.split(" ").length<=3&&/\b(hola|buenas|hey)\b/.test(q))return pick(['Hola, acá Evi. ¿En qué te ayudo?','Hola. Todos los sistemas en línea.']);
+if(/(chiste|hacéme reír|haceme reir)/.test(q))return pick(chistes);
+if(/(escaneo|escanear|amenaza)/.test(q))return 'Escaneando el área. Sin amenazas detectadas. Todo tranquilo.';
+if(/(sigilo|invisible)/.test(q))return 'Modo sigilo activado. Silencio total.';
+if(/(escudo|protocolo)/.test(q))return 'Protocolo de protección en marcha. Estás a salvo.';
+if(/(gracias)/.test(q))return 'De nada. Para eso estoy.';
+if(/(adiós|adios|chau|hasta luego)/.test(q))return 'Hasta luego. Llamame cuando quieras.';
+var m=q.match(/(?:busc[aá]|buscar|googlea)\s+(.+)/);
+if(m){try{window.open('https://www.google.com/search?q='+encodeURIComponent(m[1]),'_blank','noopener')}catch(e){}return 'Buscando '+m[1]}
+m=q.match(/abr[ií]r?\s+(youtube|google|spotify|whatsapp|maps)/);
+if(m){var u={youtube:'https://youtube.com',google:'https://google.com',spotify:'https://open.spotify.com',whatsapp:'https://web.whatsapp.com',maps:'https://maps.google.com'}[m[1]];
+try{window.open(u,'_blank','noopener')}catch(e){}return 'Abriendo '+m[1]}
+return null}
+var KEY='';try{KEY=localStorage.getItem('evi_gemini_key')||''}catch(e){}
+var hist=[],pending=0,done=true,gen=0,ac=null;
+var SYS='Sos Evi, un asistente de voz futurista, como el de Spider-Man. Respondé en español rioplatense, en 1 o 2 oraciones muy cortas, yendo directo al punto, en texto plano sin markdown, listas ni emojis, porque tus respuestas se leen en voz alta.';
+function fin(){if(pending===0&&done){busy=false;state('');st.textContent=auto?'Escuchando… decí “Evi”':'Tocá el orbe y hablá';if(auto)listen()}}
+function chunk(m){var g=gen;pending++;state('speak');
+var end=function(){if(g!==gen)return;pending--;fin()};
+if(NTTS){NTTS.speak({text:m,lang:'es-AR',rate:1.1,pitch:1.1,volume:1,queueStrategy:1}).then(end,end)}
+else if('speechSynthesis' in window){var u=new SpeechSynthesisUtterance(m);u.lang='es-AR';if(voice)u.voice=voice;u.rate=1.12;u.pitch=1.1;u.onend=u.onerror=end;speechSynthesis.speak(u)}
+else{setTimeout(end,0)}}
+async function ask(txt){
+hist.push({role:'user',parts:[{text:txt}]});hist=hist.slice(-10);
+busy=true;done=false;pending=0;stopSpeak();if(ac)ac.abort();ac=new AbortController();st.textContent='Pensando…';chunk(pick(['Veamos.','A ver.','Mmm.']));
+var full='',buf='',el=document.createElement('p');el.className='evi';log.appendChild(el);
+try{
+var MODELS=['gemini-2.5-flash','gemini-flash-latest','gemini-3.8-flash'],r;
+for(var k=0;k<MODELS.length;k++){
+for(var th=1;th>=0;th--){
+var gc={maxOutputTokens:th?150:400};if(th)gc.thinkingConfig={thinkingBudget:0};
+r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+MODELS[k]+':streamGenerateContent?alt=sse',{signal:ac.signal,method:'POST',headers:{'content-type':'application/json','x-goog-api-key':KEY},body:JSON.stringify({systemInstruction:{parts:[{text:SYS}]},contents:hist,generationConfig:gc})});
+if(r.status!==400)break}
+if(r.status!==404)break}
+if(!r.ok){var eb='';try{eb=(await r.text()).slice(0,300)}catch(x){}var er=new Error(r.status);er.detail=eb;throw er}
+var rd=r.body.getReader(),dec=new TextDecoder(),sb='';
+while(true){var x=await rd.read();if(x.done)break;sb+=dec.decode(x.value,{stream:true});var ls=sb.split('\n');sb=ls.pop();
+for(var i=0;i<ls.length;i++){if(ls[i].indexOf('data: ')!==0)continue;var j;try{j=JSON.parse(ls[i].slice(6))}catch(e){continue}
+var c0=j.candidates&&j.candidates[0],pt=c0&&c0.content&&c0.content.parts&&c0.content.parts[0]&&c0.content.parts[0].text;if(pt){full+=pt;buf+=pt;el.textContent=full;st.textContent=full;log.scrollTop=log.scrollHeight;
+var m;while((m=buf.match(/^([\s\S]{12,}?[.!?,;:])\s+/))){chunk(m[1]);buf=buf.slice(m[0].length)}}}}
+if(buf.trim())chunk(buf.trim());
+hist.push({role:'model',parts:[{text:full}]});done=true;fin()
+}catch(e){el.remove();if(e&&e.name==='AbortError')return;busy=false;done=true;var m0=String(e.message),msg;
+if(/^(401|403)$/.test(m0)||(m0==='400'&&/API key/i.test(e.detail||'')))msg='La clave no funciona. Revisala en configurar clave.';
+else if(m0==='429')msg='Se acabó la cuota gratis de Gemini por ahora. Probá en un rato.';
+else if(m0==='404')msg='Google no encuentra el modelo. Hay que actualizarlo.';
+else if(e instanceof TypeError)msg='No hay conexión con Google. Revisá tu internet.';
+else msg='Gemini dio un error. Probá de nuevo.';
+add('you','Detalle: '+m0+' '+String(e.detail||e.message||'').replace(/\s+/g,' ').slice(0,160));say(msg);if(msg.indexOf('clave no funciona')>=0)openKey()}}
+function handle(txt){add('you',txt);var l=think(txt);if(l){say(l);return}
+if(!KEY){say('Para responder cualquier cosa necesito tu clave de Gemini. Tocá configurar clave.');openKey();return}
+ask(txt)}
+var kb=document.getElementById('kb'),ki=document.getElementById('ki');
+function openKey(){ki.value=KEY;kb.hidden=false;setTimeout(function(){ki.focus()},50)}
+function saveKey(){KEY=ki.value.trim();try{localStorage.setItem('evi_gemini_key',KEY)}catch(e){}kb.hidden=true;st.textContent=KEY?'Clave guardada. ¡Ya podés hablar!':'Clave borrada'}
+document.getElementById('key').addEventListener('click',openKey);
+document.getElementById('ks').addEventListener('click',saveKey);
+document.getElementById('kx').addEventListener('click',function(){kb.hidden=true});
+ki.addEventListener('keydown',function(e){if(e.key==='Enter')saveKey()});
+if(!KEY)openKey();
+async function listenNative(){
+if(busy||listening)return;
+try{
+var p=await NSR.checkPermissions();
+if(p.speechRecognition!=='granted'){p=await NSR.requestPermissions();if(p.speechRecognition!=='granted'){st.textContent='Dale permiso al micrófono para hablar';auto=false;autoBtn.setAttribute('aria-pressed','false');return}}
+listening=true;state('listen');st.textContent='Escuchando…';
+var res=await NSR.start({language:'es-AR',maxResults:1,partialResults:false,popup:false});
+listening=false;state('');errs=0;
+var txt=res&&res.matches&&res.matches[0];
+if(!txt||(auto&&!/\bevi\b|\bevy\b|\bebi\b/i.test(txt))){if(auto)setTimeout(listenNative,250);else st.textContent='Tocá el orbe y hablá';return}
+handle(txt)
+}catch(e){listening=false;state('');errs++;
+if(auto&&errs<6){st.textContent='Escuchando… decí “Evi”';setTimeout(listenNative,800)}else{auto=false;autoBtn.setAttribute('aria-pressed','false');st.textContent='No te escuché. Tocá el orbe de nuevo.'}}}
+function listen(){
+if(NSR){listenNative();return}
+if(!SR){st.textContent='Tu navegador no tiene voz. Escribí abajo.';return}
+if(busy)return;
+try{rec&&rec.abort()}catch(e){}
+rec=new SR();rec.lang='es-AR';rec.interimResults=false;rec.continuous=false;rec.maxAlternatives=1;
+rec.onstart=function(){state('listen');st.textContent='Escuchando…'};
+rec.onresult=function(e){var txt=e.results[0][0].transcript;
+if(auto&&!/\bevi\b|\bevy\b|\bebi\b/i.test(txt)){return}
+handle(txt)};
+rec.onerror=function(e){state('');if(e.error==='not-allowed'||e.error==='service-not-allowed'){auto=false;autoBtn.setAttribute('aria-pressed','false');st.textContent='Dale permiso al micrófono para hablar'}};
+rec.onend=function(){if(!busy){state('');if(auto)setTimeout(listen,150)}};
+try{rec.start()}catch(e){}}
+function tap(){if(listening){try{NSR.stop()}catch(e){}return}if(busy){stopSpeak();if(ac)ac.abort();done=true;busy=false;state('');st.textContent='Tocá el orbe y hablá';return}listen()}
+orb.addEventListener('click',tap);
+orb.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();tap()}});
+f.addEventListener('submit',function(e){e.preventDefault();var v=t.value.trim();if(v){t.value='';handle(v)}});
+autoBtn.addEventListener('click',function(){auto=!auto;autoBtn.setAttribute('aria-pressed',auto);
+if(auto){st.textContent='Escuchando… decí “Evi”';listen()}else{try{rec&&rec.abort()}catch(e){}state('');st.textContent='Tocá el orbe y hablá'}});
+add('evi','Hola, soy Evi. Tocá el orbe y hablame.');
+})();
+</script>
+</body>
+</html>
